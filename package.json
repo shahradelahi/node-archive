@@ -19,6 +19,9 @@
       }
     }
   },
+  "bin": {
+    "p7z": "./dist/bin/7zz"
+  },
   "scripts": {
     "dev": "tsup --watch",
     "build": "tsup",
@@ -29,17 +32,20 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\"",
     "format": "prettier --write .",
     "prepublishOnly": "pnpm test && pnpm run format:check && pnpm lint && pnpm build",
-    "postinstall": "node dist/scripts/install.mjs"
+    "preinstall": "node dist/scripts/install.mjs"
   },
   "packageManager": "pnpm@8.15.0",
   "dependencies": {
+    "execa": "^8.0.1"
   },
   "devDependencies": {
     "@types/chai": "^4.3.12",
+    "@types/debug": "^4.1.12",
     "@types/mocha": "^10.0.6",
     "@types/node": "^20.11.24",
     "@typescript-eslint/eslint-plugin": "^7.1.0",
     "chai": "^5.1.0",
+    "debug": "^4.3.4",
     "eslint": "^8.57.0",
     "mocha": "^10.3.0",
     "prettier": "^3.2.5",

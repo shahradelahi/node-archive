@@ -28,7 +28,16 @@ export async function download(): Promise<void> {
 
   switch (platform) {
     case 'linux':
-      downloadUrl = `${downloadBaseUrl}/${configuration.version}/linux/linux-${arch}/7zz`;
+      switch (arch) {
+        case 'x64' || 'arm' || 'arm64':
+          downloadUrl = `${downloadBaseUrl}/${configuration.version}/linux/linux-${arch}/7zz`;
+          break;
+        case 'ia32':
+          downloadUrl = `${downloadBaseUrl}/${configuration.version}/linux/linux-x86/7zz`;
+          break;
+        default:
+          throw new Error('The current architecture is not supported.');
+      }
       break;
     case 'mac':
       downloadUrl = `${downloadBaseUrl}/${configuration.version}/mac/7zz`;
@@ -79,6 +88,7 @@ export async function download(): Promise<void> {
   // Move it to the user bin directory
   const destination = configuration.executablePath;
 
+  // @todo: install in node_modules instead of user bin directory
   await tryOrExit(async () => {
     await promises.mkdir(configuration.binPath, { recursive: true });
     await promises.rename(downloadPath, destination);

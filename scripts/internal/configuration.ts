@@ -1,12 +1,9 @@
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-import { Configuration, Platform } from './types';
+import { Configuration } from './types';
 import { getBooleanEnv } from './utils/boolean-env';
-
-function isSupported(platform: unknown): boolean {
-  return platform === Platform.Linux || platform === Platform.Mac || platform === Platform.Windows;
-}
 
 export function getConfiguration(): Configuration {
   const configuration: Partial<Configuration> = {
@@ -25,7 +22,8 @@ export function getConfiguration(): Configuration {
     process.env['npm_config_archive_bin_path'] ??
     process.env['npm_package_config_archive_bin_path'] ??
     configuration.binPath ??
-    join(homedir(), '.local', 'bin');
+    // join(process.cwd(), 'node_modules', '.bin');
+    resolvePathFormPackage('../bin');
 
   configuration.executablePath =
     process.env['ARCHIVE_EXECUTABLE_PATH'] ??
@@ -64,4 +62,11 @@ export function getConfiguration(): Configuration {
     join(homedir(), '.cache', 'node-archive');
 
   return configuration as Configuration;
+}
+
+function resolvePathFormPackage(filePath: string) {
+  const distPath =
+    typeof __dirname === 'undefined' ? fileURLToPath(new URL(`.`, import.meta.url)) : __dirname;
+
+  return resolve(distPath, filePath);
 }

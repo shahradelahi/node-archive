@@ -1,3 +1,5 @@
+/* eslint-disable no-console */
+
 export function handleError(error: unknown): void {
   if (error instanceof Error) {
     console.error(`**ERROR** ${error.message}`);

@@ -1,9 +1,8 @@
-import { Archive } from '@/lib/archive';
-import { SZip } from 'szip';
+import { SZip } from '@szip/szip';
 
 // ------------------------------
 
-export { Archive, SZip };
+// @todo: export SZip option types
 
 // ------------------------------
 
@@ -11,4 +10,5 @@ export type * from '@/types';
 
 // ------------------------------
 
-export default Archive;
+export { SZip };
+export default SZip;

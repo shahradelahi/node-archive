@@ -1,6 +1,6 @@
 {
   "name": "node-archive",
-  "version": "0.0.0",
+  "version": "0.0.0-canary.2",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -49,6 +49,7 @@
     "eslint": "^8.57.0",
     "mocha": "^10.3.0",
     "prettier": "^3.2.5",
+    "szip": "workspace:^",
     "tsup": "^8.0.2",
     "tsx": "^4.7.1",
     "typescript": "^5.3.3"

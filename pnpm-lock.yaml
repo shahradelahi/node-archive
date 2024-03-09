@@ -4,51 +4,58 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-dependencies:
-  execa:
-    specifier: ^8.0.1
-    version: 8.0.1
+importers:
 
-devDependencies:
-  '@types/chai':
-    specifier: ^4.3.12
-    version: 4.3.12
-  '@types/debug':
-    specifier: ^4.1.12
-    version: 4.1.12
-  '@types/mocha':
-    specifier: ^10.0.6
-    version: 10.0.6
-  '@types/node':
-    specifier: ^20.11.24
-    version: 20.11.24
-  '@typescript-eslint/eslint-plugin':
-    specifier: ^7.1.0
-    version: 7.1.0(@typescript-eslint/parser@7.1.0)(eslint@8.57.0)(typescript@5.3.3)
-  chai:
-    specifier: ^5.1.0
-    version: 5.1.0
-  debug:
-    specifier: ^4.3.4
-    version: 4.3.4(supports-color@8.1.1)
-  eslint:
-    specifier: ^8.57.0
-    version: 8.57.0
-  mocha:
-    specifier: ^10.3.0
-    version: 10.3.0
-  prettier:
-    specifier: ^3.2.5
-    version: 3.2.5
-  tsup:
-    specifier: ^8.0.2
-    version: 8.0.2(typescript@5.3.3)
-  tsx:
-    specifier: ^4.7.1
-    version: 4.7.1
-  typescript:
-    specifier: ^5.3.3
-    version: 5.3.3
+  .:
+    dependencies:
+      execa:
+        specifier: ^8.0.1
+        version: 8.0.1
+    devDependencies:
+      '@types/chai':
+        specifier: ^4.3.12
+        version: 4.3.12
+      '@types/debug':
+        specifier: ^4.1.12
+        version: 4.1.12
+      '@types/mocha':
+        specifier: ^10.0.6
+        version: 10.0.6
+      '@types/node':
+        specifier: ^20.11.24
+        version: 20.11.24
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^7.1.0
+        version: 7.1.0(@typescript-eslint/parser@7.1.0)(eslint@8.57.0)(typescript@5.3.3)
+      chai:
+        specifier: ^5.1.0
+        version: 5.1.0
+      debug:
+        specifier: ^4.3.4
+        version: 4.3.4(supports-color@8.1.1)
+      eslint:
+        specifier: ^8.57.0
+        version: 8.57.0
+      mocha:
+        specifier: ^10.3.0
+        version: 10.3.0
+      prettier:
+        specifier: ^3.2.5
+        version: 3.2.5
+      szip:
+        specifier: workspace:^
+        version: link:packages/szip
+      tsup:
+        specifier: ^8.0.2
+        version: 8.0.2(typescript@5.3.3)
+      tsx:
+        specifier: ^4.7.1
+        version: 4.7.1
+      typescript:
+        specifier: ^5.3.3
+        version: 5.3.3
+
+  packages/szip: {}
 
 packages:
 

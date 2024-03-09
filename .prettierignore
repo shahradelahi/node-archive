@@ -17,6 +17,7 @@ package.json
 .vercel
 .contentlayer
 dist
+cmdline
 
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*

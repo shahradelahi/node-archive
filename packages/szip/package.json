@@ -1,0 +1,11 @@
+{
+  "name": "szip",
+  "version": "0.0.0",
+  "main": "index.ts",
+  "types": "index.ts",
+  "scripts": {
+    "tests": "mocha \"**/*.test.ts\""
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

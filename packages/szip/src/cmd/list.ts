@@ -1,8 +1,11 @@
 import { normalizePathLike } from '@/utils/normalize';
 import { BIN_PATH } from '@szip/bin';
 import { debug } from '@szip/debugger';
+import { SZipError } from '@szip/error';
+import { ArchiveInfo, ArchiveType, parseArchiveInfo } from '@szip/parser';
+import type { SafeReturn } from '@szip/types';
 import { execa } from 'execa';
-import { PathLike } from 'node:fs';
+import type { PathLike } from 'node:fs';
 
 type SZipListOptions = {
   // -ai (Include archives)
@@ -29,20 +32,20 @@ type SZipListOptions = {
   exclude?: string[];
 };
 
-export async function list(
+export async function list<Type extends ArchiveType = any>(
   filename: PathLike,
   options: SZipListOptions & { raw?: false }
-): Promise<object>;
+): Promise<SafeReturn<ArchiveInfo<Type>, SZipError>>;
 
 export async function list(
   filename: PathLike,
   options: SZipListOptions & { raw: true }
-): Promise<string>;
+): Promise<SafeReturn<string, SZipError>>;
 
-export async function list(
+export async function list<Type extends ArchiveType = any>(
   filename: PathLike,
   options: SZipListOptions & { raw?: boolean } = {}
-): Promise<string | object> {
+): Promise<SafeReturn<string | ArchiveInfo<Type>, SZipError>> {
   const args: string[] = ['l', normalizePathLike(filename)];
 
   if (options?.technicalInfo) {
@@ -84,10 +87,17 @@ export async function list(
   debug('list', result.command);
 
   const message = result.stdout !== '' ? result.stdout : result.stderr;
-
   if (options.raw) {
-    return message;
+    return { data: message };
   }
 
-  throw new Error('Not implemented');
+  if (result.stderr !== '') {
+    return { error: SZipError.fromStderr(result.stderr) };
+  }
+
+  if (result.stdout === '') {
+    return { error: new SZipError('Empty') };
+  }
+
+  return { data: parseArchiveInfo(message) };
 }

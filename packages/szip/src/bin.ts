@@ -2,11 +2,11 @@ import { fsAccessSync } from '@/utils/fs-access';
 import { getDirname } from '@/utils/get-dirname';
 import { join, resolve } from 'node:path';
 
-export const BIN_PATH = resolveBinPath();
+export const BIN_PATH = process?.env?.SZIP_BIN_PATH ?? resolveBinPath();
 
 function resolveBinPath() {
   // This path is for dev and its pointing to the dist folder and root of the project
-  const develPath = resolve(join('../..', 'dist', 'bin', '7zz'));
+  const develPath = resolve(join('dist', 'bin', '7zz'));
   if (fsAccessSync(develPath)) {
     return develPath;
   }

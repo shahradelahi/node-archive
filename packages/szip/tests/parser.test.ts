@@ -1,5 +1,7 @@
+import { ArchiveTar, parseArchiveInfo, parseError } from '@szip/parser';
 import { log } from '@tests/log';
 import { expect } from 'chai';
+import { Archive7z } from 'szip';
 
 describe('SZip - Message Parser', () => {
   describe('Create and Modify', () => {
@@ -451,228 +453,10 @@ Volume Index = 0
 Offset = 39`
     };
 
-    type ArchiveType = '7z' | 'tar' | 'zip';
-
-    type Archive7zInfo = {
-      path: string;
-      type: string;
-      physicalSize: number;
-      headersSize: number;
-      method: string[];
-      solid: boolean;
-      blocks: number;
-      files: Archive7zFileInfo[];
-    };
-
-    type Archive7zFileInfo = {
-      path: string;
-      size: number;
-      packedSize: number;
-      modified: string;
-      attributes: string;
-      crc: string;
-      encrypted: boolean;
-      method: string[];
-      block: number;
-    };
-
-    type ArchiveTarInfo = {
-      path: string;
-      type: string;
-      physicalSize: number;
-      headersSize: number;
-      codePage: string;
-      characteristics: string;
-      files: ArchiveTarFileInfo[];
-    };
-
-    type ArchiveTarFileInfo = {
-      path: string;
-      folder: boolean;
-      size: number;
-      packedSize: number;
-      modified: string;
-      created: string | undefined;
-      accessed: string | undefined;
-      mode: string;
-      user: string | undefined;
-      group: string | undefined;
-      userID: number;
-      groupID: number;
-      symbolicLink: boolean;
-      hardLink: boolean;
-      characteristics: string;
-      comment: string | undefined;
-      deviceMajor: string | undefined;
-      deviceMinor: string | undefined;
-    };
-
-    type ArchiveZipInfo = {
-      path: string;
-      type: string;
-      physicalSize: number;
-      files: ArchiveZipFileInfo[];
-    };
-
-    type ArchiveZipFileInfo = {
-      path: string;
-      folder: boolean;
-      size: number;
-      packedSize: number;
-      modified: string;
-      created: string | undefined;
-      accessed: string | undefined;
-      attributes: string | undefined;
-      encrypted: boolean;
-      comment: string | undefined;
-      crc: string | undefined;
-      method: string;
-      characteristics: string;
-      hostOS: string;
-      version: number;
-      volumeIndex: number;
-      offset: number;
-    };
-
-    type ArchiveInfo<Type extends ArchiveType> = Type extends '7z'
-      ? Archive7zInfo
-      : Type extends 'tar'
-        ? ArchiveTarInfo
-        : Type extends 'zip'
-          ? ArchiveZipInfo
-          : never;
-
-    function parse7zArchiveInfo(message: string): Archive7zInfo {
-      const ARCHIVE_REGEX = /Listing archive: (.+)/gm;
-      const archivePath = ARCHIVE_REGEX.exec(message)![1];
-
-      const PHYSICAL_SIZE_REGEX = /^Physical Size = (\d+)/gm;
-      const HEADERS_SIZE_REGEX = /^Headers Size = (\d+)/gm;
-      const METHOD_REGEX = /^Method = (.+)/gm;
-      const SOLID_REGEX = /^Solid = (.+)/gm;
-      const BLOCKS_REGEX = /^Blocks = (\d+)/gm;
-
-      const FILE_REGEX =
-        /Path = (.+)\nSize = (\d+)\nPacked Size = (\d+)\nModified = (.+)\nAttributes = (.+)\nCRC = (.+)\nEncrypted = (.+)\nMethod = (.+)\nBlock = (\d+)/gm;
-
-      const physicalSize = parseInt(PHYSICAL_SIZE_REGEX.exec(message)![1]);
-      const headersSize = parseInt(HEADERS_SIZE_REGEX.exec(message)![1]);
-      const method = METHOD_REGEX.exec(message)![1].split(' ');
-      const solid = SOLID_REGEX.exec(message)![1] === '+';
-      const blocks = parseInt(BLOCKS_REGEX.exec(message)![1]);
-
-      const files: Archive7zFileInfo[] = [];
-      let file: RegExpExecArray | null;
-      while ((file = FILE_REGEX.exec(message)) !== null) {
-        files.push({
-          path: file[1],
-          size: parseInt(file[2]),
-          packedSize: parseInt(file[3]),
-          modified: file[4],
-          attributes: file[5],
-          crc: file[6],
-          encrypted: file[7] === '+',
-          method: file[8].split(' '),
-          block: parseInt(file[9])
-        });
-      }
-
-      return {
-        path: archivePath,
-        type: '7z',
-        physicalSize,
-        headersSize,
-        method,
-        solid,
-        blocks,
-        files
-      };
-    }
-
-    function parseTarArchiveInfo(message: string): ArchiveTarInfo {
-      const ARCHIVE_REGEX = /Listing archive: (.+)/gm;
-      const archivePath = ARCHIVE_REGEX.exec(message)![1];
-
-      const PHYSICAL_SIZE_REGEX = /Physical Size = (\d+)/gm;
-      const HEADERS_SIZE_REGEX = /Headers Size = (\d+)/gm;
-      const CODE_PAGE_REGEX = /Code Page = (.+)/gm;
-      const CHARACTERISTICS_REGEX = /Characteristics = (.+)/gm;
-
-      const FILE_REGEX =
-        /Path = (.+)\nFolder = (.+)\nSize = (\d+)\nPacked Size = (\d+)\nModified = (.+)?\nCreated = (.+)?\nAccessed = (.+)?\nMode = (.+)?\nUser = (.+)?\nGroup = (.+)?\nUser ID = (.+)?\nGroup ID = (.+)?\nSymbolic Link = (.+)?\nHard Link = (.+)?\nCharacteristics = (.+)?\nComment = (.+)?\nDevice Major = (.+)?\nDevice Minor = (.+)?/gm;
-
-      const physicalSize = parseInt(PHYSICAL_SIZE_REGEX.exec(message)![1]);
-      const headersSize = parseInt(HEADERS_SIZE_REGEX.exec(message)![1]);
-      const codePage = CODE_PAGE_REGEX.exec(message)![1];
-      const characteristics = CHARACTERISTICS_REGEX.exec(message)![1];
-
-      const files: ArchiveTarFileInfo[] = [];
-      let file: RegExpExecArray | null;
-      while ((file = FILE_REGEX.exec(message)) !== null) {
-        files.push({
-          path: file[1],
-          folder: file[2] === '+',
-          size: parseInt(file[3]),
-          packedSize: parseInt(file[4]),
-          modified: file[5],
-          created: file[6],
-          accessed: file[7],
-          mode: file[8],
-          user: file[9],
-          group: file[10],
-          userID: parseInt(file[11]),
-          groupID: parseInt(file[12]),
-          symbolicLink: file[13] === '+',
-          hardLink: file[14] === '+',
-          characteristics: file[15],
-          comment: file[16],
-          deviceMajor: file[17],
-          deviceMinor: file[18]
-        });
-      }
-
-      return {
-        path: archivePath,
-        type: 'tar',
-        physicalSize,
-        headersSize,
-        codePage,
-        characteristics,
-        files
-      };
-    }
-
-    function detectArchiveType(message: string): ArchiveType | undefined {
-      const matches = /--\n(?:.|\n)+^Type = (.+)/gm.exec(message);
-      if (!matches || !matches[1]) {
-        return;
-      }
-
-      return matches[1].trim() as ArchiveType;
-    }
-
-    function parseArchiveInfo(message: string): ArchiveInfo<any> {
-      const type = detectArchiveType(message);
-
-      if (!type) {
-        throw new Error('Archive type not detected');
-      }
-
-      if (type === '7z') {
-        return parse7zArchiveInfo(message);
-      }
-
-      if (type === 'tar') {
-        return parseTarArchiveInfo(message);
-      }
-
-      throw new Error('Archive type not supported');
-    }
-
     it('should parse a 7z archive list', () => {
       const message = MessageList.LIST_7Z;
 
-      const expected: Archive7zInfo = {
+      const expected: Archive7z = {
         path: 'secure.tar.7z',
         type: '7z',
         physicalSize: 1004250,
@@ -704,7 +488,7 @@ Offset = 39`
     it('should parse a tar archive list', () => {
       const message = MessageList.LIST_TAR;
 
-      const expected: ArchiveTarInfo = {
+      const expected: ArchiveTar = {
         path: 'source.tar',
         type: 'tar',
         physicalSize: 2868224,
@@ -780,69 +564,46 @@ WARNING: errno=2 : No such file or directory
 !pnpm-lock.yaml`
     };
 
-    interface SZipError {
-      message: string;
-    }
-
     // Errors with \n\n as separator are multi-line errors
-
-    function parseError(message: string): SZipError {
-      const isMultiLine = message.includes('\n\n');
-
-      if (isMultiLine) {
-        const errors = message.split('\n\n');
-        message = errors[0];
-      }
-
-      return {
-        message
-      };
-    }
 
     it('should parse a cmdline error message', async () => {
       const message = MessageList.CMDLINE_ERROR_SINGLE;
 
-      const expected: SZipError = {
-        message: `\
+      const expected = `\
 Command Line Error:
 Incorrect wildcard type marker
-src/*.*`
-      };
+src/*.*`;
 
       const result = parseError(message);
       log(result);
 
-      expect(result).to.deep.equal(expected);
+      expect(result).to.equal(expected);
     });
 
     it('should parse a cmdline error message with multi-line', async () => {
       const message = MessageList.CMDLINE_ERROR_MULTI;
 
-      const expected: SZipError = {
-        message: `\
+      const expected = `\
 WARNING: errno=2 : No such file or directory
-!package.json`
-      };
+!package.json`;
 
       const result = parseError(message);
       log(result);
 
-      expect(result).to.deep.equal(expected);
+      expect(result).to.equal(expected);
     });
 
     it('should parse a cmdline error message with multi-line 2', async () => {
       const message = MessageList.CMDLINE_ERROR_MULTI;
 
-      const expected: SZipError = {
-        message: `\
+      const expected = `\
 WARNING: errno=2 : No such file or directory
-!package.json`
-      };
+!package.json`;
 
       const result = parseError(message);
       log(result);
 
-      expect(result).to.deep.equal(expected);
+      expect(result).to.equal(expected);
     });
   });
 });

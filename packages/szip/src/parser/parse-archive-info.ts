@@ -1,3 +1,4 @@
+import { SZipError } from '@szip/error';
 import type {
   Archive7z,
   ArchiveInfo,
@@ -5,7 +6,7 @@ import type {
   ArchiveTar,
   Archive7zFile
 } from '@szip/parser/types';
-import { detectArchiveType } from '@szip/parser/utils';
+import { detectArchiveType } from '@szip/helpers';
 
 function parse7zArchiveInfo(message: string): Archive7z {
   const ARCHIVE_REGEX = /Listing archive: (.+)/gm;
@@ -107,11 +108,11 @@ function parseTarArchiveInfo(message: string): ArchiveTar {
   };
 }
 
-export function parseArchiveInfo(message: string): ArchiveInfo<any> {
+export function parseArchiveInfo(message: string): ArchiveInfo<any> | SZipError {
   const type = detectArchiveType(message);
 
   if (!type) {
-    throw new Error('Archive type not detected');
+    throw new SZipError('Archive type not detected');
   }
 
   if (type === '7z') {
@@ -122,5 +123,5 @@ export function parseArchiveInfo(message: string): ArchiveInfo<any> {
     return parseTarArchiveInfo(message);
   }
 
-  throw new Error('Archive type not supported');
+  throw new SZipError('Archive type not supported');
 }

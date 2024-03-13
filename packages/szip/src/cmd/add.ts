@@ -1,8 +1,11 @@
 import { ContentLike } from '@/types';
 import { BIN_PATH } from '@szip/bin';
 import { debug } from '@szip/debugger';
+import { SZipError } from '@szip/error';
+import { ArchiveInfo, parseArchiveInfo } from '@szip/parser';
 import { execa } from 'execa';
 import type { Writable as WritableStream } from 'node:stream';
+import { ArchiveType, SafeReturn } from 'szip';
 
 type SZipAddOptions = {
   // -bb (Set output log level)
@@ -49,13 +52,26 @@ type SZipAddOptions = {
   exclude?: string[];
 };
 
+export async function add<Type extends ArchiveType = ArchiveType>(
+  filename: string,
+  options: SZipAddOptions & { raw?: false }
+): Promise<SafeReturn<ArchiveInfo<Type>, SZipError>>;
+
+export async function add(
+  filename: string,
+  options: SZipAddOptions & { raw: true }
+): Promise<SafeReturn<string, SZipError>>;
+
 /**
  * Add files to an archive.
  *
  * @param filename
  * @param options
  */
-export async function add(filename: string, options: SZipAddOptions) {
+export async function add<Type extends ArchiveType = ArchiveType>(
+  filename: string,
+  options: SZipAddOptions & { raw?: boolean }
+): Promise<SafeReturn<string | ArchiveInfo<Type>, SZipError>> {
   const args = ['a', filename];
 
   const INCLUDE_FLAG = options.recurse ? '-ir!' : '-i!';
@@ -143,5 +159,18 @@ export async function add(filename: string, options: SZipAddOptions) {
 
   debug('add', result.command);
 
-  return result.stdout !== '' ? result.stdout : result.stderr;
+  const message = result.stdout !== '' ? result.stdout : result.stderr;
+  if (options.raw) {
+    return { data: message };
+  }
+
+  if (result.stderr !== '') {
+    return { error: SZipError.fromStderr(result.stderr) };
+  }
+
+  if (result.stdout === '') {
+    return { error: new SZipError('Empty') };
+  }
+
+  return { data: parseArchiveInfo(message) };
 }

@@ -46,6 +46,7 @@
     "@typescript-eslint/eslint-plugin": "^7.2.0",
     "chai": "^5.1.0",
     "debug": "^4.3.4",
+    "dotenv": "^16.4.5",
     "eslint": "^8.57.0",
     "mocha": "^10.3.0",
     "prettier": "^3.2.5",

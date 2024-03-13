@@ -32,7 +32,7 @@ type SZipListOptions = {
   exclude?: string[];
 };
 
-export async function list<Type extends ArchiveType = any>(
+export async function list<Type extends ArchiveType = ArchiveType>(
   filename: PathLike,
   options: SZipListOptions & { raw?: false }
 ): Promise<SafeReturn<ArchiveInfo<Type>, SZipError>>;
@@ -42,7 +42,7 @@ export async function list(
   options: SZipListOptions & { raw: true }
 ): Promise<SafeReturn<string, SZipError>>;
 
-export async function list<Type extends ArchiveType = any>(
+export async function list<Type extends ArchiveType = ArchiveType>(
   filename: PathLike,
   options: SZipListOptions & { raw?: boolean } = {}
 ): Promise<SafeReturn<string | ArchiveInfo<Type>, SZipError>> {

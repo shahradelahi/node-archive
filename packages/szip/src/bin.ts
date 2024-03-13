@@ -1,8 +1,12 @@
 import { fsAccessSync } from '@/utils/fs-access';
 import { getDirname } from '@/utils/get-dirname';
+import { debug } from '@szip/debugger';
+import { SZipError } from '@szip/error';
 import { join, resolve } from 'node:path';
 
 export const BIN_PATH = process?.env?.SZIP_BIN_PATH ?? resolveBinPath();
+
+debug('Binary Path:', BIN_PATH);
 
 function resolveBinPath() {
   // This path is for dev and its pointing to the dist folder and root of the project
@@ -18,5 +22,5 @@ function resolveBinPath() {
   }
 
   // We are not going to use $(which 7z) result because it can be different from the one we are using
-  throw new Error('p7z binary not found');
+  throw new SZipError('p7z binary not found');
 }

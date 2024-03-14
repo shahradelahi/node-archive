@@ -1,4 +1,5 @@
-import { ArchiveTar, parseArchiveInfo, parseError } from '@szip/parser';
+import { ArchiveTar, parseArchiveInfo, parseError, SZipCompressResult } from '@szip/parser';
+import { parseCompressMessage } from '@szip/parser/parse-compress-message';
 import { log } from '@tests/log';
 import { expect } from 'chai';
 import { Archive7z } from 'szip';
@@ -540,6 +541,37 @@ Offset = 39`
       };
 
       const result = parseArchiveInfo(message);
+      log(result);
+
+      expect(result).to.deep.equal(expected);
+    });
+  });
+
+  describe('Compress', () => {
+    const MessageList: Record<string, string> = {
+      COMPRESS_XZ: `\
+7-Zip (z) 23.01 (x64) : Copyright (c) 1999-2023 Igor Pavlov : 2023-06-20
+ 64-bit locale=en_US.UTF-8 Threads:8 OPEN_MAX:1048576, ASM
+
+Creating archive: /home/master/Projects/WebstormProjects/Github/node-archive/source.tar.xz
+
+Add new data to archive: 1 file
+
+
+Files read from disk: 1
+Archive size: 1003532 bytes (981 KiB)
+Everything is Ok`
+    };
+
+    it('should parse a compress message', () => {
+      const message = MessageList.COMPRESS_XZ;
+
+      const expected: SZipCompressResult = {
+        path: '/home/master/Projects/WebstormProjects/Github/node-archive/source.tar.xz',
+        size: 1003532
+      };
+
+      const result = parseCompressMessage(message);
       log(result);
 
       expect(result).to.deep.equal(expected);

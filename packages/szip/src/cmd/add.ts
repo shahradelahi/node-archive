@@ -2,6 +2,7 @@ import { ContentLike } from '@/types';
 import { BIN_PATH } from '@szip/bin';
 import { debug } from '@szip/debugger';
 import { SZipError } from '@szip/error';
+import { auditArgsWithStdout } from '@szip/helpers';
 import { ArchiveInfo, parseArchiveInfo } from '@szip/parser';
 import { execa } from 'execa';
 import type { Writable as WritableStream } from 'node:stream';
@@ -59,6 +60,11 @@ export async function add<Type extends ArchiveType = ArchiveType>(
 
 export async function add(
   filename: string,
+  options: SZipAddOptions & { stdout?: WritableStream; raw?: never }
+): Promise<SafeReturn<boolean, SZipError>>;
+
+export async function add(
+  filename: string,
   options: SZipAddOptions & { raw: true }
 ): Promise<SafeReturn<string, SZipError>>;
 
@@ -71,18 +77,26 @@ export async function add(
 export async function add<Type extends ArchiveType = ArchiveType>(
   filename: string,
   options: SZipAddOptions & { raw?: boolean }
-): Promise<SafeReturn<string | ArchiveInfo<Type>, SZipError>> {
-  const args = ['a', filename];
+): Promise<SafeReturn<ArchiveInfo<Type> | string | boolean, SZipError>> {
+  let args = ['a'];
+
+  const audited = await auditArgsWithStdout(filename, args, {
+    ...options,
+    ignoreOverwrite: options.update
+  });
+  if (audited.error) {
+    return audited;
+  }
+
+  if (audited.data) {
+    args = audited.data;
+  }
 
   const INCLUDE_FLAG = options.recurse ? '-ir!' : '-i!';
   const EXCLUDE_FLAG = options.recurse ? '-xr!' : '-x!';
 
   // Examples:
   // 7z a -tzip src.zip *.txt -ir!DIR1\*.cpp
-
-  if (options.stdout) {
-    args.push('-so');
-  }
 
   if (options.type) {
     args.push('-t' + options.type); // Type of archive: zip, tar, etc.

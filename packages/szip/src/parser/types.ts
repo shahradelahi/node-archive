@@ -2,7 +2,7 @@ export type ArchiveType = '7z' | 'tar' | 'zip';
 
 export type Archive7z = {
   path: string;
-  type: string;
+  type: '7z';
   physicalSize: number;
   headersSize: number;
   method: string[];
@@ -25,7 +25,7 @@ export type Archive7zFile = {
 
 export type ArchiveTar = {
   path: string;
-  type: string;
+  type: 'tar';
   physicalSize: number;
   headersSize: number;
   codePage: string;
@@ -56,7 +56,7 @@ export type ArchiveTarFile = {
 
 export type ArchiveZip = {
   path: string;
-  type: string;
+  type: 'zip';
   physicalSize: number;
   files: ArchiveZipFile[];
 };
@@ -90,3 +90,12 @@ interface InnerArchive extends Record<ArchiveType, object> {
 export type ArchiveInfo<Type extends ArchiveType> = Type extends ArchiveType
   ? InnerArchive[Type]
   : never;
+
+// -------------------------------
+
+export interface SZipCompressResult {
+  path: string;
+  size: number;
+}
+
+// -------------------------------

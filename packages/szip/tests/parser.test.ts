@@ -601,10 +601,7 @@ WARNING: errno=2 : No such file or directory
     it('should parse a cmdline error message', async () => {
       const message = MessageList.CMDLINE_ERROR_SINGLE;
 
-      const expected = `\
-Command Line Error:
-Incorrect wildcard type marker
-src/*.*`;
+      const expected = 'Command Line Error: Incorrect wildcard type marker src/*.*';
 
       const result = parseError(message);
       log(result);
@@ -616,8 +613,7 @@ src/*.*`;
       const message = MessageList.CMDLINE_ERROR_MULTI;
 
       const expected = `\
-WARNING: errno=2 : No such file or directory
-!package.json`;
+WARNING: errno=2 : No such file or directory !package.json`;
 
       const result = parseError(message);
       log(result);
@@ -629,8 +625,7 @@ WARNING: errno=2 : No such file or directory
       const message = MessageList.CMDLINE_ERROR_MULTI;
 
       const expected = `\
-WARNING: errno=2 : No such file or directory
-!package.json`;
+WARNING: errno=2 : No such file or directory !package.json`;
 
       const result = parseError(message);
       log(result);

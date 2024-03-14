@@ -5,6 +5,7 @@ import { SZipError } from '@szip/error';
 import { auditArgsWithStdout } from '@szip/helpers';
 import { ArchiveInfo, parseArchiveInfo } from '@szip/parser';
 import { execa } from 'execa';
+import { PathLike } from 'node:fs';
 import type { Writable as WritableStream } from 'node:stream';
 import { ArchiveType, SafeReturn } from 'szip';
 
@@ -12,7 +13,7 @@ type SZipAddOptions = {
   // -bb (Set output log level)
   logLevel?: string;
   // -i (Include)
-  include: string[];
+  include?: string[];
   // -m (Method)
   method?: string;
   // -p (Set Password)
@@ -54,17 +55,17 @@ type SZipAddOptions = {
 };
 
 export async function add<Type extends ArchiveType = ArchiveType>(
-  filename: string,
+  filename: PathLike,
   options: SZipAddOptions & { raw?: false }
 ): Promise<SafeReturn<ArchiveInfo<Type>, SZipError>>;
 
 export async function add(
-  filename: string,
+  filename: PathLike,
   options: SZipAddOptions & { stdout?: WritableStream; raw?: never }
 ): Promise<SafeReturn<boolean, SZipError>>;
 
 export async function add(
-  filename: string,
+  filename: PathLike,
   options: SZipAddOptions & { raw: true }
 ): Promise<SafeReturn<string, SZipError>>;
 
@@ -75,7 +76,7 @@ export async function add(
  * @param options
  */
 export async function add<Type extends ArchiveType = ArchiveType>(
-  filename: string,
+  filename: PathLike,
   options: SZipAddOptions & { raw?: boolean }
 ): Promise<SafeReturn<ArchiveInfo<Type> | string | boolean, SZipError>> {
   let args = ['a'];

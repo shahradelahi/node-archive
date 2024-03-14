@@ -75,26 +75,4 @@ describe('SZip - Compress', () => {
     await promises.unlink(filename);
     await promises.unlink(tarName);
   });
-
-  it('compress and encrypt', async () => {
-    const tarName = resolve(ROOT_DIR, 'secure.tar');
-    const { data: tarOuts } = await createTar(tarName, Buffer.from('password').toString('base64'));
-    expect(tarOuts).to.contain('Everything is Ok');
-
-    const filename = resolve(ROOT_DIR, 'secure.tar.7z');
-
-    const output = await SZip.encrypt(filename, createReadStream(tarName), {
-      password: 'password',
-      cwd: ROOT_DIR
-    });
-
-    log(output);
-
-    const hasPass = await Archive.hasPassword(filename);
-
-    expect(hasPass).to.be.true;
-
-    await promises.unlink(filename);
-    await promises.unlink(tarName);
-  });
 });

@@ -30,7 +30,7 @@ export function handleExecaResult<Value>(
   }
 
   if (result.stderr !== '') {
-    return { error: SZipError.fromStderr(result.stderr) };
+    return { error: SZipError.fromExecaResult(result) };
   }
 
   if (result.stdout === '') {

@@ -1,11 +1,12 @@
 {
   "name": "node-archive",
-  "version": "0.0.0-canary.2",
+  "version": "0.0.0-canary.3",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "files": [
-    "dist/**"
+    "dist/**",
+    "!dist/bin"
   ],
   "exports": {
     ".": {
@@ -25,13 +26,13 @@
   "scripts": {
     "dev": "tsup --watch",
     "build": "tsup",
-    "test": "mocha \"**/*.test.ts\"",
+    "test": "pnpm run preinstall && mocha \"**/*.test.ts\"",
     "type-check": "tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\"",
     "lint:fix": "npm run lint -- --fix",
     "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\"",
     "format": "prettier --write .",
-    "prepublishOnly": "pnpm test && pnpm run format:check && pnpm lint && pnpm build",
+    "prepublishOnly": "pnpm test && pnpm run format:check && pnpm run type-check && pnpm build",
     "preinstall": "node dist/scripts/install.mjs"
   },
   "packageManager": "pnpm@8.15.0",

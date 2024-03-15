@@ -11,7 +11,6 @@ describe('SZip - List', () => {
       await createTar7z(filename);
 
       const list = await SZip.list(filename, {
-        technicalInfo: true,
         raw: true
       });
 
@@ -24,7 +23,6 @@ describe('SZip - List', () => {
       await createTar('source.tar');
 
       const list = await SZip.list('source.tar', {
-        technicalInfo: true,
         raw: true
       });
       log(list);
@@ -37,7 +35,6 @@ describe('SZip - List', () => {
       await createZip(filename);
 
       const list = await SZip.list(filename, {
-        technicalInfo: true,
         raw: true
       });
       log(list);

@@ -8,7 +8,7 @@ import type { Writable as WritableStream } from 'node:stream';
 import { SafeReturn, SZipError } from 'szip';
 
 export function detectArchiveType(message: string): ArchiveType | undefined {
-  const matches = /--\n(?:.|\n)+^Type = (.+)/gm.exec(message);
+  const matches = /--\n(?:.|\n)+^Type = (.+)$/gm.exec(message);
   if (!matches || !matches[1]) {
     return;
   }
@@ -30,7 +30,7 @@ export function handleExecaResult<Value>(
   }
 
   if (result.stderr !== '') {
-    return { error: SZipError.fromExecaResult(result) };
+    return { error: SZipError.fromStderr(result.stderr) };
   }
 
   if (result.stdout === '') {

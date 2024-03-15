@@ -1,13 +1,12 @@
-import { ContentLike } from '@/types';
+import type { ContentLike, WritableStream } from '@/types';
 import { BIN_PATH } from '@szip/bin';
 import { debug } from '@szip/debugger';
 import { SZipError } from '@szip/error';
 import { auditArgsWithStdout, handleExecaResult } from '@szip/helpers';
 import { SZipCompressResult } from '@szip/parser';
 import { parseCompressMessage } from '@szip/parser/parse-compress-message';
-import { execa } from 'execa';
+import { safeExec } from '@szip/utils/safe-exec';
 import { PathLike } from 'node:fs';
-import type { Writable as WritableStream } from 'node:stream';
 import { SafeReturn } from 'szip';
 
 type SZipCompressOptions = {
@@ -78,15 +77,19 @@ export async function compress(
     args.push('-p' + options.password);
   }
 
-  const result = await execa(BIN_PATH, args, {
+  const { data, error } = await safeExec(BIN_PATH, args, {
     input: content,
     stdio: options.stdout ? ['pipe', options.stdout, 'inherit'] : undefined,
     cwd: options?.cwd
   });
 
-  debug('compress', result.command);
+  if (error) {
+    return { error: SZipError.fromExecaError(error) };
+  }
 
-  return handleExecaResult(result, {
+  debug('compress', data.command);
+
+  return handleExecaResult(data, {
     raw: options.raw || false,
     stdout: options.stdout,
     parser: parseCompressMessage

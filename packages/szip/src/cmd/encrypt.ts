@@ -64,8 +64,7 @@ export async function encrypt(
 
   const { data, error } = await safeExec(BIN_PATH, args, {
     input: content,
-    cwd: options?.cwd,
-    stderr: 'pipe'
+    cwd: options?.cwd
   });
 
   if (error) {
@@ -76,7 +75,6 @@ export async function encrypt(
 
   return handleExecaResult(data, {
     raw: options.raw || false,
-    stdout: undefined,
     parser: () => true
   });
 }

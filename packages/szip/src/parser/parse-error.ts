@@ -5,7 +5,7 @@ export function parseError(message: string) {
 
   message = message.trim();
 
-  const isMultiLine = message.includes('\n\n');
+  const isMultiLine = message.includes('\n\n\n');
 
   if (isMultiLine) {
     const errors = message.split('\n\n');

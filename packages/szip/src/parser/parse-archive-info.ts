@@ -56,21 +56,8 @@ function parse7zArchiveInfo(message: string): Archive7z {
 }
 
 function parseTarArchiveInfo(message: string): ArchiveTar {
-  const ARCHIVE_REGEX = /Listing archive: (.+)/gm;
-  const archivePath = ARCHIVE_REGEX.exec(message)![1];
-
-  const PHYSICAL_SIZE_REGEX = /Physical Size = (\d+)/gm;
-  const HEADERS_SIZE_REGEX = /Headers Size = (\d+)/gm;
-  const CODE_PAGE_REGEX = /Code Page = (.+)/gm;
-  const CHARACTERISTICS_REGEX = /Characteristics = (.+)/gm;
-
   const FILE_REGEX =
     /Path = (.+)\nFolder = (.+)\nSize = (\d+)\nPacked Size = (\d+)\nModified = (.+)?\nCreated = (.+)?\nAccessed = (.+)?\nMode = (.+)?\nUser = (.+)?\nGroup = (.+)?\nUser ID = (.+)?\nGroup ID = (.+)?\nSymbolic Link = (.+)?\nHard Link = (.+)?\nCharacteristics = (.+)?\nComment = (.+)?\nDevice Major = (.+)?\nDevice Minor = (.+)?/gm;
-
-  const physicalSize = parseInt(PHYSICAL_SIZE_REGEX.exec(message)![1]);
-  const headersSize = parseInt(HEADERS_SIZE_REGEX.exec(message)![1]);
-  const codePage = CODE_PAGE_REGEX.exec(message)![1];
-  const characteristics = CHARACTERISTICS_REGEX.exec(message)![1];
 
   const files: ArchiveTarFile[] = [];
   let file: RegExpExecArray | null;
@@ -97,13 +84,19 @@ function parseTarArchiveInfo(message: string): ArchiveTar {
     });
   }
 
+  const archivePath = /(?:Creating|Open|Updating|Listing) archive: (.+)$/gm.exec(message);
+  const physicalSize = /^Physical Size = (\d+)/gm.exec(message);
+  const headersSize = /^Headers Size = (\d+)/gm.exec(message);
+  const codePage = /^Code Page = (.+)/gm.exec(message);
+  const characteristics = /^Characteristics = (.+)/gm.exec(message);
+
   return {
-    path: archivePath,
+    path: archivePath ? archivePath[1] : '',
     type: 'tar',
-    physicalSize,
-    headersSize,
-    codePage,
-    characteristics,
+    physicalSize: physicalSize ? parseInt(physicalSize[1]) : 0,
+    headersSize: headersSize ? parseInt(headersSize[1]) : 0,
+    codePage: codePage ? codePage[1] : '',
+    characteristics: characteristics ? characteristics[1] : '',
     files
   };
 }

@@ -1,6 +1,13 @@
+import { normalizePathLike } from '@/utils/normalize';
 import { BIN_PATH } from '@szip/bin';
 import { debug } from '@szip/debugger';
-import { execa } from 'execa';
+import { handleExecaResult } from '@szip/helpers';
+import { ArchiveInfo, ArchiveResult, ArchiveType } from '@szip/parser';
+import { parseArchiveResult } from '@szip/parser/parse-archive-result';
+import { addPattern, isWildcard } from '@szip/utils/pattern';
+import { safeExec } from '@szip/utils/safe-exec';
+import { PathLike } from 'node:fs';
+import { SafeReturn, SZipError } from 'szip';
 
 type SZipDeleteOptions = {
   // -bb (Set output log level)
@@ -12,7 +19,7 @@ type SZipDeleteOptions = {
   // -m (Method)
   method?: string;
   // -w (Working Dir)
-  workingDir?: string;
+  cwd?: string;
   // -p (Set Password)
   password?: string;
   // -r (Recurse)
@@ -23,17 +30,35 @@ type SZipDeleteOptions = {
   update?: boolean;
 };
 
+export async function del(
+  filepath: PathLike,
+  patterns: string[],
+  options?: SZipDeleteOptions & { raw: true }
+): Promise<SafeReturn<string, SZipError>>;
+
+export async function del<Type extends ArchiveType = any>(
+  filepath: PathLike,
+  patterns: string[],
+  options?: SZipDeleteOptions & { raw?: boolean }
+): Promise<SafeReturn<ArchiveResult<'delete', Type>, SZipError>>;
+
 /**
  * Deletes files from archive.
  *
- * @param filename
+ * @param filepath
+ * @param patterns
  * @param options
  */
-export async function del(filename: string, options: SZipDeleteOptions) {
-  const args = ['d', filename];
+export async function del<Type extends ArchiveType = ArchiveType>(
+  filepath: PathLike,
+  patterns: string[],
+  options?: SZipDeleteOptions & { raw?: boolean }
+): Promise<SafeReturn<ArchiveInfo<Type> | string, SZipError>> {
+  const normalizedPath = normalizePathLike(filepath);
+  const args = ['d', normalizedPath];
 
-  if (options?.workingDir) {
-    args.push('-w' + options.workingDir);
+  if (options?.logLevel) {
+    args.push(`-bb${options.logLevel}`);
   }
 
   if (options?.password) {
@@ -52,21 +77,41 @@ export async function del(filename: string, options: SZipDeleteOptions) {
     args.push('-u');
   }
 
+  // Add patterns
+  Array.from(patterns || [])
+    .filter((p) => p && p.trim() !== '')
+    .forEach((p) => args.push(p.trim()));
+
   if (options?.include) {
     options.include.forEach((include) => {
-      args.push('-i!' + include);
+      args.push(addPattern('i', include, options.recurse ?? isWildcard(include)));
     });
   }
 
   if (options?.exclude) {
     options.exclude.forEach((exclude) => {
-      args.push('-x!' + exclude);
+      args.push(addPattern('x', exclude, options.recurse ?? isWildcard(exclude)));
     });
   }
 
-  const result = await execa(BIN_PATH, args);
+  // Examples:
+  //
+  // 7z d archive.zip *.bak -r
+  // deletes *.bak files from archive archive.zip.
 
-  debug('delete', result.command);
+  const { data, error } = await safeExec(BIN_PATH, args, {
+    cwd: options?.cwd
+  });
 
-  return result.stdout !== '' ? result.stdout : result.stderr;
+  if (error) {
+    return { error: SZipError.fromExecaError(error) };
+  }
+
+  debug('delete', data.command);
+
+  // @ts-expect-error - It does not recognize the `type` property
+  return handleExecaResult(data, {
+    raw: options?.raw || false,
+    parser: parseArchiveResult
+  });
 }

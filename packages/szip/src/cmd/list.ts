@@ -2,9 +2,10 @@ import { normalizePathLike } from '@/utils/normalize';
 import { BIN_PATH } from '@szip/bin';
 import { debug } from '@szip/debugger';
 import { SZipError } from '@szip/error';
+import { handleExecaResult } from '@szip/helpers';
 import { ArchiveInfo, ArchiveType, parseArchiveInfo } from '@szip/parser';
 import type { SafeReturn } from '@szip/types';
-import { execa } from 'execa';
+import { safeExec } from '@szip/utils/safe-exec';
 import type { PathLike } from 'node:fs';
 
 type SZipListOptions = {
@@ -16,8 +17,8 @@ type SZipListOptions = {
   excludeArchives?: boolean;
   // -i (Include)
   include?: string[];
-  // -slt (Show technical information)
-  technicalInfo?: boolean;
+  // // -slt (Show technical information)
+  // technicalInfo?: boolean;
   // -sns (Store NTFS alternate Streams)
   storeNTFSAlternateStreams?: boolean;
   // -p (Set Password)
@@ -30,6 +31,8 @@ type SZipListOptions = {
   type?: string;
   // -x (Exclude)
   exclude?: string[];
+  // -w (Working Dir)
+  cwd?: string;
 };
 
 export async function list<Type extends ArchiveType = ArchiveType>(
@@ -46,11 +49,7 @@ export async function list<Type extends ArchiveType = ArchiveType>(
   filename: PathLike,
   options: SZipListOptions & { raw?: boolean } = {}
 ): Promise<SafeReturn<string | ArchiveInfo<Type>, SZipError>> {
-  const args: string[] = ['l', normalizePathLike(filename)];
-
-  if (options?.technicalInfo) {
-    args.push('-slt');
-  }
+  const args: string[] = ['l', '-slt', normalizePathLike(filename)];
 
   if (options?.password) {
     args.push(`-p${options.password}`);
@@ -82,22 +81,18 @@ export async function list<Type extends ArchiveType = ArchiveType>(
     args.push('-ai');
   }
 
-  const result = await execa(BIN_PATH, args);
+  const { data, error } = await safeExec(BIN_PATH, args, {
+    cwd: options?.cwd
+  });
 
-  debug('list', result.command);
-
-  const message = result.stdout !== '' ? result.stdout : result.stderr;
-  if (options.raw) {
-    return { data: message };
+  if (error) {
+    return { error: SZipError.fromExecaError(error) };
   }
 
-  if (result.stderr !== '') {
-    return { error: SZipError.fromStderr(result.stderr) };
-  }
+  debug('list', data.command);
 
-  if (result.stdout === '') {
-    return { error: new SZipError('Empty') };
-  }
-
-  return { data: parseArchiveInfo(message) };
+  return handleExecaResult(data, {
+    raw: options.raw || false,
+    parser: parseArchiveInfo
+  });
 }

@@ -81,14 +81,12 @@ export type ArchiveZipFile = {
   offset: number;
 };
 
-interface InnerArchive extends Record<ArchiveType, object> {
-  '7z': Archive7z;
-  tar: ArchiveTar;
-  zip: ArchiveZip;
-}
-
 export type ArchiveInfo<Type extends ArchiveType> = Type extends ArchiveType
-  ? InnerArchive[Type]
+  ? {
+      '7z': Archive7z;
+      tar: ArchiveTar;
+      zip: ArchiveZip;
+    }[Type]
   : never;
 
 // -------------------------------
@@ -97,5 +95,56 @@ export interface SZipCompressResult {
   path: string;
   size: number;
 }
+
+// -------------------------------
+
+export interface ArchiveTarHeader {
+  type: 'tar';
+  physicalSize: number;
+  headersSize: number;
+  codePage: string;
+  characteristics: string;
+}
+
+export interface Archive7zHeader {
+  type: '7z';
+  physicalSize: number;
+  headersSize: number;
+  method: string[];
+  solid: boolean;
+  blocks: number;
+}
+
+export type ArchiveHeader<Type extends ArchiveType> = Type extends ArchiveType
+  ? {
+      '7z': Archive7zHeader;
+      tar: ArchiveTarHeader;
+      zip: never;
+    }[Type]
+  : never;
+
+// -------------------------------
+
+export type ArchiveStats<Operation extends ArchiveOperation = any> = {
+  files: number;
+  bytes: number;
+} & (Operation extends 'delete' ? { folders?: never } : { folders: number });
+
+export type ArchiveOperation = 'create' | 'update' | 'delete';
+
+export type ArchiveResult<
+  Operation extends ArchiveOperation = any,
+  Type extends ArchiveType = any
+> = {
+  path: string;
+  size: number;
+  previous?: ArchiveStats<Operation>;
+  added: ArchiveStats<Operation>;
+} & (Operation extends 'create'
+  ? { header?: never }
+  : {
+      header: ArchiveHeader<Type>;
+    }) &
+  (Operation extends 'delete' ? { deleted: ArchiveStats<Operation> } : { deleted?: never });
 
 // -------------------------------

@@ -1,7 +1,8 @@
-import { ContentLike } from '@/types';
+import type { ContentLike, WritableStream } from '@/types';
 import { BIN_PATH } from '@szip/bin';
-import { execa } from 'execa';
-import type { Writable as WritableStream } from 'node:stream';
+import { handleExecaResult } from '@szip/helpers';
+import { safeExec } from '@szip/utils/safe-exec';
+import { SZipError } from 'szip';
 
 type SZipExtractOptions = {
   // -ai (Include archives)
@@ -55,9 +56,16 @@ export async function extract(filename: string, options: SZipExtractOptions) {
   // 7z e archive.zip
   // 7z e archive.zip -oc:\soft *.cpp -r
 
-  const result = await execa(BIN_PATH, args, {
+  const { data, error } = await safeExec(BIN_PATH, args, {
     cwd: options?.cwd
   });
 
-  return result.stdout || result.stderr;
+  if (error) {
+    return { error: SZipError.fromExecaError(error) };
+  }
+
+  return handleExecaResult(data, {
+    raw: true,
+    parser: () => true
+  });
 }

@@ -10,8 +10,7 @@ describe('SZip - Create Archive', () => {
     it('archive `src` and `dist` directory', async () => {
       const filename = resolve(ROOT_DIR, 'project.zip');
 
-      const output = await SZip.add(filename, {
-        include: ['src/*', 'dist/*'],
+      const output = await SZip.add(filename, ['src/*', 'dist/*'], {
         type: 'zip',
         cwd: ROOT_DIR,
         raw: true
@@ -26,8 +25,7 @@ describe('SZip - Create Archive', () => {
     it('archive `package.json` and `pnpm-lock.yaml`', async () => {
       const filename = resolve(ROOT_DIR, 'package.zip');
 
-      const output = await SZip.add(filename, {
-        include: ['package.json', 'pnpm-lock.yaml'],
+      const output = await SZip.add(filename, ['package.json', 'pnpm-lock.yaml'], {
         type: 'zip',
         cwd: ROOT_DIR,
         raw: true
@@ -43,8 +41,7 @@ describe('SZip - Create Archive', () => {
     it('archive `src` directory', async () => {
       const filename = 'project.tar';
 
-      const output = await SZip.add(filename, {
-        include: ['src/*'],
+      const output = await SZip.add(filename, ['src/*'], {
         type: 'tar',
         cwd: ROOT_DIR,
         raw: true
@@ -58,8 +55,7 @@ describe('SZip - Create Archive', () => {
     it('should archive `src` and then add `dist` directory to archive', async () => {
       const filename = resolve(ROOT_DIR, 'project.tar');
 
-      const createdTar = await SZip.add(filename, {
-        include: ['src/*'],
+      const createdTar = await SZip.add(filename, ['src/*'], {
         type: 'tar',
         cwd: ROOT_DIR,
         raw: true
@@ -67,8 +63,7 @@ describe('SZip - Create Archive', () => {
 
       log(createdTar);
 
-      const updatedTar = await SZip.add(filename, {
-        include: ['dist/*'],
+      const updatedTar = await SZip.add(filename, ['dist/*'], {
         type: 'tar',
         update: true, // Update the archive
         cwd: ROOT_DIR,
@@ -83,20 +78,35 @@ describe('SZip - Create Archive', () => {
     it('archive `package.json` and `pnpm-lock.yaml` then removes `package.json` from archive', async () => {
       const filename = resolve(ROOT_DIR, 'package.tar');
 
-      const createdTar = await SZip.add(filename, {
-        include: ['package.json', 'pnpm-lock.yaml'],
+      const createdTar = await SZip.add(filename, ['package.json', 'pnpm-lock.yaml'], {
         type: 'tar',
-        cwd: ROOT_DIR,
-        raw: true
+        cwd: ROOT_DIR
       });
 
       log(createdTar);
 
-      const updatedTar = await SZip.del(filename, {
-        exclude: ['package.json']
-      });
+      const updatedTar = await SZip.del(filename, ['package.json']);
 
       log(updatedTar);
+
+      await promises.unlink(filename);
+    });
+  });
+
+  describe('7z', () => {
+    it('should archive `src` and `dist` directory', async () => {
+      const filename = resolve(ROOT_DIR, 'project.7z');
+
+      const output = await SZip.add(filename, ['src/*', 'dist/*'], {
+        type: '7z',
+        cwd: ROOT_DIR,
+        raw: true
+      });
+
+      expect(output, output.error?.message).to.have.property('data').that.is.a('string');
+      expect(output.data).to.contain('Everything is Ok');
+
+      log(output);
 
       await promises.unlink(filename);
     });
@@ -106,8 +116,7 @@ describe('SZip - Create Archive', () => {
     it('create a zip', async () => {
       const filename = resolve(ROOT_DIR, 'source.zip');
 
-      const output = await SZip.add(filename, {
-        include: ['src/*', 'dist/*'],
+      const output = await SZip.add(filename, ['src/*', 'dist/*'], {
         type: 'zip',
         password: 'pa$$word @|',
         cwd: ROOT_DIR,

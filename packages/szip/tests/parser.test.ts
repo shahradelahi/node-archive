@@ -1,4 +1,11 @@
-import { ArchiveTar, parseArchiveInfo, parseError, SZipCompressResult } from '@szip/parser';
+import {
+  ArchiveResult,
+  ArchiveTar,
+  parseArchiveInfo,
+  parseError,
+  SZipCompressResult
+} from '@szip/parser';
+import { parseArchiveResult } from '@szip/parser/parse-archive-result';
 import { parseCompressMessage } from '@szip/parser/parse-compress-message';
 import { log } from '@tests/log';
 import { expect } from 'chai';
@@ -6,7 +13,7 @@ import { Archive7z } from 'szip';
 
 describe('SZip - Message Parser', () => {
   describe('Create and Modify', () => {
-    const MessageList: Record<string, string> = {
+    const MessageList = {
       MODIFY_ARCHIVE: `\
 7-Zip (z) 23.01 (x64) : Copyright (c) 1999-2023 Igor Pavlov : 2023-06-20
  64-bit locale=en_US.UTF-8 Threads:8 OPEN_MAX:524288, ASM
@@ -97,130 +104,19 @@ Archive size: 1231162 bytes (1203 KiB)
 Everything is Ok`
     };
 
-    interface UpdateArchiveResult {
-      path: string;
-      size: number;
-      type: string;
-      physicalSize: number;
-      headersSize: number;
-      codePage: string;
-      characteristics: string;
-      previous?: ArchiveStats;
-      deleted?: ArchiveStats;
-      added: ArchiveStats;
-    }
-
-    interface CreateArchiveResult {
-      path: string;
-      size: number;
-      added: ArchiveStats;
-    }
-
-    type ArchiveStats = {
-      folders: number;
-      files: number;
-      bytes: number;
-    };
-
-    function parseUpdateArchive(message: string): UpdateArchiveResult {
-      const ADDED_FOLDER_FILE_BYTE_REGEX =
-        /Add new data to archive: (?:(\d+) folders, )?(\d+) files?, (\d+)/gm;
-
-      const PREVIOUS_FOLDER_FILE_BYTE_REGEX =
-        /Keep old data in archive: (?:(\d+) folders, )?(\d+) files?, (\d+)/gm;
-
-      const DELETED_FOLDER_FILE_BYTE_REGEX =
-        /Delete data from archive: (?:(\d+) folders, )?(\d+) files?, (\d+)/gm;
-
-      const ARCHIVE_SIZE_REGEX = /^Archive size: (\d+) bytes/gm;
-
-      const ARCHIVE_REGEX = /^(Creating|Updating) archive: (.+)$/gm;
-
-      const archivePath = ARCHIVE_REGEX.exec(message);
-      const archiveSize = ARCHIVE_SIZE_REGEX.exec(message);
-
-      const type = /Type = (.+)/gm.exec(message)![1];
-      const physicalSize = parseInt(/Physical Size = (\d+)/gm.exec(message)![1]);
-      const headersSize = parseInt(/Headers Size = (\d+)/gm.exec(message)![1]);
-      const codePage = /Code Page = (.+)/gm.exec(message)![1];
-      const characteristics = /Characteristics = (.+)/gm.exec(message)![1];
-
-      const result: Partial<UpdateArchiveResult> = {
-        path: archivePath![2],
-        size: parseInt(archiveSize![1]),
-        type,
-        physicalSize,
-        headersSize,
-        codePage,
-        characteristics
-      };
-
-      const addedStats = ADDED_FOLDER_FILE_BYTE_REGEX.exec(message);
-      if (addedStats) {
-        result.added = {
-          folders: addedStats[1] ? parseInt(addedStats[1]) : 0, // [1] is undefined if no folders
-          files: parseInt(addedStats[2]),
-          bytes: parseInt(addedStats[3])
-        };
-      }
-
-      const previousStats = PREVIOUS_FOLDER_FILE_BYTE_REGEX.exec(message);
-      if (previousStats) {
-        result.previous = {
-          folders: previousStats[1] ? parseInt(previousStats[1]) : 0,
-          files: parseInt(previousStats[2]),
-          bytes: parseInt(previousStats[3])
-        };
-      }
-
-      const deletedStats = DELETED_FOLDER_FILE_BYTE_REGEX.exec(message);
-      if (deletedStats) {
-        result.deleted = {
-          folders: deletedStats[1] ? parseInt(deletedStats[1]) : 0,
-          files: parseInt(deletedStats[2]),
-          bytes: parseInt(deletedStats[3])
-        };
-      }
-
-      return result as UpdateArchiveResult;
-    }
-
-    function parseCreateArchive(message: string): CreateArchiveResult {
-      const ADDED_FOLDER_FILE_BYTE_REGEX =
-        /Add new data to archive: (\d+) folders, (\d+) files, (\d+) bytes/gm;
-
-      const ARCHIVE_SIZE_REGEX = /^Archive size: (\d+) bytes/gm;
-
-      const ARCHIVE_REGEX = /^(Creating|Updating) archive: (.+)$/gm;
-
-      const archivePath = ARCHIVE_REGEX.exec(message);
-      const archiveSize = ARCHIVE_SIZE_REGEX.exec(message);
-
-      const addedStats = ADDED_FOLDER_FILE_BYTE_REGEX.exec(message)!;
-      const added: ArchiveStats = {
-        folders: addedStats[1] ? parseInt(addedStats[1]) : 0, // [1] is undefined if no folders
-        files: parseInt(addedStats[2]),
-        bytes: parseInt(addedStats[3])
-      };
-
-      return {
-        path: archivePath![2],
-        size: parseInt(archiveSize![1]),
-        added
-      };
-    }
-
     it('should parse a update message', () => {
       const message = MessageList.MODIFY_ARCHIVE;
 
-      const expected: UpdateArchiveResult = {
+      const expected: ArchiveResult<'update', 'tar'> = {
         path: 'source.tar',
         size: 13312,
-        type: 'tar',
-        physicalSize: 13312,
-        headersSize: 5632,
-        codePage: 'UTF-8',
-        characteristics: 'GNU ASCII',
+        header: {
+          type: 'tar',
+          physicalSize: 13312,
+          headersSize: 5632,
+          codePage: 'UTF-8',
+          characteristics: 'GNU ASCII'
+        },
         added: {
           folders: 3,
           files: 6,
@@ -228,23 +124,23 @@ Everything is Ok`
         }
       };
 
-      const result = parseUpdateArchive(message);
+      const result = parseArchiveResult(message);
       log(result);
 
       expect(result).to.deep.equal(expected);
     });
 
     it('should parse a update message with previous archive', () => {
-      const message = MessageList.UPDATE_ADDED_ARCHIVE;
-
-      const expected: UpdateArchiveResult = {
+      const expected: ArchiveResult<'update', 'tar'> = {
         path: 'project.tar',
         size: 2865664,
-        type: 'tar',
-        physicalSize: 20992,
-        headersSize: 6656,
-        codePage: 'UTF-8',
-        characteristics: 'GNU ASCII',
+        header: {
+          type: 'tar',
+          physicalSize: 20992,
+          headersSize: 6656,
+          codePage: 'UTF-8',
+          characteristics: 'GNU ASCII'
+        },
         added: {
           folders: 2,
           files: 7,
@@ -257,7 +153,7 @@ Everything is Ok`
         }
       };
 
-      const result = parseUpdateArchive(message);
+      const result = parseArchiveResult(MessageList.UPDATE_ADDED_ARCHIVE);
       log(result);
 
       expect(result).to.deep.equal(expected);
@@ -266,32 +162,31 @@ Everything is Ok`
     it('should parse a update message with deleted archive', () => {
       const message = MessageList.UPDATE_DELETED_ARCHIVE;
 
-      const expected: UpdateArchiveResult = {
+      const expected: ArchiveResult<'delete', 'tar'> = {
         path: 'package.tar',
         size: 3584,
-        type: 'tar',
-        physicalSize: 78336,
-        headersSize: 2048,
-        codePage: 'UTF-8',
-        characteristics: 'GNU ASCII',
+        header: {
+          type: 'tar',
+          physicalSize: 78336,
+          headersSize: 2048,
+          codePage: 'UTF-8',
+          characteristics: 'GNU ASCII'
+        },
         deleted: {
-          folders: 0,
           files: 1,
           bytes: 74192
         },
         previous: {
-          folders: 0,
           files: 1,
           bytes: 1760
         },
         added: {
-          folders: 0,
           files: 0,
           bytes: 0
         }
       };
 
-      const result = parseUpdateArchive(message);
+      const result = parseArchiveResult(message);
       log(result);
 
       expect(result).to.deep.equal(expected);
@@ -300,7 +195,7 @@ Everything is Ok`
     it('should parse a new archive message', () => {
       const message = MessageList.NEW_ARCHIVE;
 
-      const expected: CreateArchiveResult = {
+      const expected: ArchiveResult<'create'> = {
         path: 'project.zip',
         size: 1231162,
         added: {
@@ -310,7 +205,7 @@ Everything is Ok`
         }
       };
 
-      const result = parseCreateArchive(message);
+      const result = parseArchiveResult(message);
       log(result);
 
       expect(result).to.deep.equal(expected);
@@ -579,7 +474,7 @@ Everything is Ok`
   });
 
   describe('Error', () => {
-    const MessageList: Record<string, string> = {
+    const MessageList = {
       CMDLINE_ERROR_SINGLE: `\
 Command Line Error:
 Incorrect wildcard type marker

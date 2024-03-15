@@ -1,5 +1,5 @@
-import { ContentLike } from '@/types';
-import type { Writable as WritableStream } from 'node:stream';
+import { ContentLike, WritableStream } from '@/types';
+import { PathLike } from 'node:fs';
 
 type SZipUpdateOptions = {
   // -bb (Set output log level)
@@ -48,4 +48,4 @@ type SZipUpdateOptions = {
  * @param filename
  * @param options
  */
-export async function update(filename: string, options: SZipUpdateOptions) {}
+export async function update(filename: PathLike, options: SZipUpdateOptions) {}

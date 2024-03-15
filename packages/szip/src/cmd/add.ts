@@ -1,12 +1,13 @@
-import { ContentLike } from '@/types';
+import type { ContentLike, WritableStream } from '@/types';
 import { BIN_PATH } from '@szip/bin';
 import { debug } from '@szip/debugger';
 import { SZipError } from '@szip/error';
-import { auditArgsWithStdout } from '@szip/helpers';
-import { ArchiveInfo, parseArchiveInfo } from '@szip/parser';
-import { execa } from 'execa';
+import { auditArgsWithStdout, handleExecaResult } from '@szip/helpers';
+import { ArchiveInfo, ArchiveOperation, ArchiveResult } from '@szip/parser';
+import { parseArchiveResult } from '@szip/parser/parse-archive-result';
+import { addPattern, isRecurse } from '@szip/utils/pattern';
+import { safeExec } from '@szip/utils/safe-exec';
 import { PathLike } from 'node:fs';
-import type { Writable as WritableStream } from 'node:stream';
 import { ArchiveType, SafeReturn } from 'szip';
 
 type SZipAddOptions = {
@@ -54,18 +55,24 @@ type SZipAddOptions = {
   exclude?: string[];
 };
 
-export async function add<Type extends ArchiveType = ArchiveType>(
+export async function add<
+  Operation extends ArchiveOperation = 'create' | 'update',
+  Type extends ArchiveType = any
+>(
   filename: PathLike,
+  patterns: string[],
   options: SZipAddOptions & { raw?: false }
-): Promise<SafeReturn<ArchiveInfo<Type>, SZipError>>;
+): Promise<SafeReturn<ArchiveResult<Operation, Type>, SZipError>>;
 
 export async function add(
   filename: PathLike,
+  patterns: string[],
   options: SZipAddOptions & { stdout?: WritableStream; raw?: never }
 ): Promise<SafeReturn<boolean, SZipError>>;
 
 export async function add(
   filename: PathLike,
+  patterns: string[],
   options: SZipAddOptions & { raw: true }
 ): Promise<SafeReturn<string, SZipError>>;
 
@@ -73,10 +80,12 @@ export async function add(
  * Add files to an archive.
  *
  * @param filename
+ * @param patterns
  * @param options
  */
 export async function add<Type extends ArchiveType = ArchiveType>(
   filename: PathLike,
+  patterns: string[],
   options: SZipAddOptions & { raw?: boolean }
 ): Promise<SafeReturn<ArchiveInfo<Type> | string | boolean, SZipError>> {
   let args = ['a'];
@@ -93,12 +102,6 @@ export async function add<Type extends ArchiveType = ArchiveType>(
     args = audited.data;
   }
 
-  const INCLUDE_FLAG = options.recurse ? '-ir!' : '-i!';
-  const EXCLUDE_FLAG = options.recurse ? '-xr!' : '-x!';
-
-  // Examples:
-  // 7z a -tzip src.zip *.txt -ir!DIR1\*.cpp
-
   if (options.type) {
     args.push('-t' + options.type); // Type of archive: zip, tar, etc.
   }
@@ -112,15 +115,20 @@ export async function add<Type extends ArchiveType = ArchiveType>(
     }
   }
 
-  if (options.exclude) {
-    options.exclude.forEach((exclude) => {
-      args.push(EXCLUDE_FLAG + exclude);
-    });
-  }
+  // Add patterns
+  Array.from(patterns || [])
+    .filter((p) => p && p.trim() !== '')
+    .forEach((p) => args.push(p.trim()));
 
   if (options.include) {
     options.include.forEach((include) => {
-      args.push(INCLUDE_FLAG + include);
+      args.push(addPattern('i', include, options.recurse ?? isRecurse(include)));
+    });
+  }
+
+  if (options.exclude) {
+    options.exclude.forEach((exclude) => {
+      args.push(addPattern('x', exclude, options.recurse ?? isRecurse(exclude)));
     });
   }
 
@@ -168,24 +176,32 @@ export async function add<Type extends ArchiveType = ArchiveType>(
     args.push('-stx');
   }
 
-  const result = await execa(BIN_PATH, args, {
+  // Examples:
+  //
+  // $ 7z a archive1.zip subdir\
+  // adds all files and subfolders from folder subdir to archive archive1.zip. The filenames
+  // in archive will contain subdir\ prefix.
+  //
+  // $ 7z a archive.7z Folder1\ -xr!*.png
+  // adds to the archive.7z all files from Folder1 and its subfolders, except *.png files.
+  //
+  // $ 7z a -tzip archive.zip *.txt -x!temp.*
+  // adds to the archive.zip all *.txt files, except temp.* files.
+
+  const { data, error } = await safeExec(BIN_PATH, args, {
     cwd: options?.cwd
   });
 
-  debug('add', result.command);
-
-  const message = result.stdout !== '' ? result.stdout : result.stderr;
-  if (options.raw) {
-    return { data: message };
+  if (error) {
+    return { error: SZipError.fromExecaError(error) };
   }
 
-  if (result.stderr !== '') {
-    return { error: SZipError.fromStderr(result.stderr) };
-  }
+  debug('add', data.command);
 
-  if (result.stdout === '') {
-    return { error: new SZipError('Empty') };
-  }
-
-  return { data: parseArchiveInfo(message) };
+  // @ts-expect-error - It does not recognize the `operation` and `type` properties
+  return handleExecaResult(data, {
+    raw: options.raw || false,
+    stdout: options.stdout,
+    parser: parseArchiveResult
+  });
 }

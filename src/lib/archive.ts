@@ -1,4 +1,4 @@
-import { SZip } from '../../packages/szip/src/szip';
+import { SZip, SZipError } from 'szip';
 import { PathLike } from 'node:fs';
 
 type ArchiveOptions = {
@@ -77,14 +77,31 @@ class Archive {
    * Get information about an archive.
    * @param archive
    */
-  static async getInfo(archive: PathLike): Promise<any> {
-    const info = await SZip.list(archive, {
-      technicalInfo: true
-    });
+  static async getInfo(archive: PathLike) {
+    const info = await SZip.list(archive, {});
+
+    return info;
   }
 
   static async hasPassword(archive: PathLike): Promise<boolean> {
-    return false;
+    const { data, error } = await Archive.getInfo(archive);
+    if (error) {
+      throw error;
+    }
+
+    if (!data) {
+      throw new SZipError('No data');
+    }
+
+    switch (data.type) {
+      case '7z':
+      case 'zip':
+        return data.files.some((file) => file.encrypted);
+      case 'tar':
+        return false;
+      default:
+        throw new SZipError('Unsupported archive type');
+    }
   }
 
   async finalize(opts: FinalizeOptions): Promise<void> {}

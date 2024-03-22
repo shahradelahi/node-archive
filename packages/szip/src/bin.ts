@@ -16,7 +16,7 @@ function resolveBinPath() {
   }
 
   // This path is for dist version and its pointing to bin directory at the dist folder
-  const distLevel = resolve(join(getDirname(), 'dist', 'bin', '7zz'));
+  const distLevel = resolve(join(getDirname(), 'bin', '7zz'));
   if (fsAccessSync(distLevel)) {
     return distLevel;
   }

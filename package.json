@@ -33,7 +33,7 @@
     "prepublishOnly": "pnpm build && pnpm run format:check && pnpm run type-check && pnpm run bin:download && pnpm test",
     "preinstall": "pnpm run bin:download"
   },
-  "packageManager": "pnpm@8.15.0",
+  "packageManager": "pnpm@9.12.1",
   "dependencies": {
     "execa": "^8.0.1"
   },
